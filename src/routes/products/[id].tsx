@@ -1,7 +1,8 @@
-import { For, Show, Suspense } from 'solid-js';
-import { A, createRouteData, RouteDataArgs, useRouteData } from 'solid-start';
-import { createServerData$ } from 'solid-start/server';
-import { Product } from '~/types';
+import { For, Show, Suspense } from "solid-js";
+import { A, createRouteData, RouteDataArgs, useRouteData } from "solid-start";
+import { createServerData$ } from "solid-start/server";
+import ProductCard from "~/components/ProductCard";
+import { Product } from "~/types";
 
 export function routeData({ params }: RouteDataArgs) {
   const product = createServerData$(
@@ -9,18 +10,23 @@ export function routeData({ params }: RouteDataArgs) {
       fetch(`https://dummyjson.com/products/${id}`).then(
         (r) => r.json() as Promise<Product>
       ),
-    { key: () => ['products', params.id] }
+    { key: () => ["products", params.id], deferStream: true }
   );
 
-  const recommended = createRouteData(
-    ([, id]) =>
-      fetch(`https://dummyjson.com/products?limit=4&skip=${id}`).then(
+  const recommended = createServerData$(
+    async ([, id]) => {
+      const data = await fetch(
+        `https://dummyjson.com/products?limit=4&skip=${id}`
+      ).then(
         (r) =>
           r.json() as Promise<{
             products: Product[];
           }>
-      ),
-    { key: () => ['productRecommendations', params.id] }
+      );
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      return data;
+    },
+    { key: () => ["productRecommendations", params.id] }
   );
 
   return { product, recommended };
@@ -60,18 +66,18 @@ export default function About() {
           <div>
             <h2>Recommended</h2>
             <div class="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
-              <Show
-                when={recommended()}
-                fallback={<div>Loading recommended...</div>}
-              >
-                {(recommended) => (
-                  <For each={recommended().products}>
-                    {(product) => (
-                      <A href={`/${product.id}`}>{product.title}</A>
-                    )}
-                  </For>
-                )}
-              </Show>
+              <Suspense fallback={<div>Recommended suspense...</div>}>
+                <Show
+                  when={recommended()}
+                  fallback={<div>No recommended...</div>}
+                >
+                  {(recommended) => (
+                    <For each={recommended().products}>
+                      {(product) => <ProductCard product={product} />}
+                    </For>
+                  )}
+                </Show>
+              </Suspense>
             </div>
           </div>
         </>

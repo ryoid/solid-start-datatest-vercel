@@ -1,13 +1,14 @@
 import { For, Show } from 'solid-js';
 import { A, useRouteData } from 'solid-start';
 import { createServerData$ } from 'solid-start/server';
-import { Product } from '~/types';
+import ProductCard from "~/components/ProductCard";
+import { Product } from "~/types";
 
 export function routeData() {
   return createServerData$(
     async () => {
       const data = await fetch(
-        'https://dummyjson.com/products/category/smartphones'
+        "https://dummyjson.com/products/category/smartphones"
       ).then(
         (r) =>
           r.json() as Promise<{
@@ -16,7 +17,7 @@ export function routeData() {
       );
       return data;
     },
-    { key: () => ['homeFeaturedProducts'] }
+    { key: () => ["homeFeaturedProducts"], deferStream: true }
   );
 }
 
@@ -28,7 +29,7 @@ export default function Home() {
       <Show when={featured()} fallback={<div>Loading featured...</div>}>
         {(featured) => (
           <For each={featured().products}>
-            {(product) => <A href={`/${product.id}`}>{product.title}</A>}
+            {(product) => <ProductCard product={product} />}
           </For>
         )}
       </Show>
